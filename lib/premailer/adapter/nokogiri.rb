@@ -20,6 +20,8 @@ class Premailer
         end
         # Iterate through the rules and merge them into the HTML
         @css_parser.each_selector(:all) do |selector, declaration, specificity, media_types|
+          declaration = remove_bad_properties(declaration)
+          
           # Save un-mergable rules separately
           selector.gsub!(/:link([\s]*)+/i) { |m| $1 }
 
@@ -259,6 +261,16 @@ class Premailer
         doc
       end
 
+      def remove_bad_properties(declaration)
+        return declaration unless @options[:allowed_properties]
+        
+        result = declaration.split('; ').filter {|individual_declaration| @options[:allowed_properties].any? {|property| individual_declaration.split(':')[0] == property}}.join('; ')
+        unless result.blank? || result.end_with?(';')
+          result += ';'
+        end
+        
+        result
+      end
     end
   end
 end
