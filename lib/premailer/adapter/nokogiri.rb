@@ -264,12 +264,32 @@ class Premailer
       def remove_bad_properties(declaration)
         return declaration unless @options[:allowed_properties]
         
-        result = declaration.split('; ').filter {|individual_declaration| @options[:allowed_properties].any? {|property| individual_declaration.split(':')[0] == property}}.join('; ')
+        result = declaration
+          .split('; ')
+          .filter {|individual_declaration| any_allowed_properties?(individual_declaration)}
+          .map {|individual_declaration| substitute_variable(individual_declaration)}
+          .join('; ')
         unless result.blank? || result.end_with?(';')
           result += ';'
         end
         
         result
+      end
+      
+      def any_allowed_properties?(individual_declaration)
+        @options[:allowed_properties].any? {|property| individual_declaration.split(':')[0] == property}
+      end
+      
+      def substitute_variable(individual_declaration)
+        return individual_declaration unless @options[:variable_substitutions]
+        
+        property, value = individual_declaration.split(': ')
+        value = value.delete_suffix(';')
+        @options[:variable_substitutions].each do |variable_name, substitution|
+          value = value.sub("var(#{variable_name})", substitution.to_s)
+        end
+        
+        "#{property}: #{value};"
       end
     end
   end
